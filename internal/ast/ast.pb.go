@@ -7,10 +7,11 @@
 package ast
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -2458,40 +2459,43 @@ func file_ast_ast_proto_rawDescGZIP() []byte {
 	return file_ast_ast_proto_rawDescData
 }
 
-var file_ast_ast_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
-var file_ast_ast_proto_goTypes = []interface{}{
-	(*Node)(nil),             // 0: ast.Node
-	(*Alias)(nil),            // 1: ast.Alias
-	(*Await)(nil),            // 2: ast.Await
-	(*Attribute)(nil),        // 3: ast.Attribute
-	(*AnnAssign)(nil),        // 4: ast.AnnAssign
-	(*Arg)(nil),              // 5: ast.Arg
-	(*Arguments)(nil),        // 6: ast.Arguments
-	(*AsyncFor)(nil),         // 7: ast.AsyncFor
-	(*AsyncFunctionDef)(nil), // 8: ast.AsyncFunctionDef
-	(*Assign)(nil),           // 9: ast.Assign
-	(*Call)(nil),             // 10: ast.Call
-	(*ClassDef)(nil),         // 11: ast.ClassDef
-	(*Comment)(nil),          // 12: ast.Comment
-	(*Compare)(nil),          // 13: ast.Compare
-	(*Constant)(nil),         // 14: ast.Constant
-	(*Dict)(nil),             // 15: ast.Dict
-	(*Expr)(nil),             // 16: ast.Expr
-	(*For)(nil),              // 17: ast.For
-	(*FunctionDef)(nil),      // 18: ast.FunctionDef
-	(*If)(nil),               // 19: ast.If
-	(*Import)(nil),           // 20: ast.Import
-	(*ImportFrom)(nil),       // 21: ast.ImportFrom
-	(*ImportGroup)(nil),      // 22: ast.ImportGroup
-	(*Is)(nil),               // 23: ast.Is
-	(*Keyword)(nil),          // 24: ast.Keyword
-	(*Module)(nil),           // 25: ast.Module
-	(*Name)(nil),             // 26: ast.Name
-	(*Pass)(nil),             // 27: ast.Pass
-	(*Return)(nil),           // 28: ast.Return
-	(*Subscript)(nil),        // 29: ast.Subscript
-	(*Yield)(nil),            // 30: ast.Yield
-}
+var (
+	file_ast_ast_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+	file_ast_ast_proto_goTypes  = []interface{}{
+		(*Node)(nil),             // 0: ast.Node
+		(*Alias)(nil),            // 1: ast.Alias
+		(*Await)(nil),            // 2: ast.Await
+		(*Attribute)(nil),        // 3: ast.Attribute
+		(*AnnAssign)(nil),        // 4: ast.AnnAssign
+		(*Arg)(nil),              // 5: ast.Arg
+		(*Arguments)(nil),        // 6: ast.Arguments
+		(*AsyncFor)(nil),         // 7: ast.AsyncFor
+		(*AsyncFunctionDef)(nil), // 8: ast.AsyncFunctionDef
+		(*Assign)(nil),           // 9: ast.Assign
+		(*Call)(nil),             // 10: ast.Call
+		(*ClassDef)(nil),         // 11: ast.ClassDef
+		(*Comment)(nil),          // 12: ast.Comment
+		(*Compare)(nil),          // 13: ast.Compare
+		(*Constant)(nil),         // 14: ast.Constant
+		(*Dict)(nil),             // 15: ast.Dict
+		(*Expr)(nil),             // 16: ast.Expr
+		(*For)(nil),              // 17: ast.For
+		(*FunctionDef)(nil),      // 18: ast.FunctionDef
+		(*If)(nil),               // 19: ast.If
+		(*Import)(nil),           // 20: ast.Import
+		(*ImportFrom)(nil),       // 21: ast.ImportFrom
+		(*ImportGroup)(nil),      // 22: ast.ImportGroup
+		(*Is)(nil),               // 23: ast.Is
+		(*Keyword)(nil),          // 24: ast.Keyword
+		(*Module)(nil),           // 25: ast.Module
+		(*Name)(nil),             // 26: ast.Name
+		(*Pass)(nil),             // 27: ast.Pass
+		(*Return)(nil),           // 28: ast.Return
+		(*Subscript)(nil),        // 29: ast.Subscript
+		(*Yield)(nil),            // 30: ast.Yield
+	}
+)
+
 var file_ast_ast_proto_depIdxs = []int32{
 	11, // 0: ast.Node.class_def:type_name -> ast.ClassDef
 	20, // 1: ast.Node.import:type_name -> ast.Import

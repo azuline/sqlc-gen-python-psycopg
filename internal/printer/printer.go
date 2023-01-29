@@ -12,8 +12,7 @@ type writer struct {
 	src     []byte
 }
 
-type Options struct {
-}
+type Options struct{}
 
 type PrintResult struct {
 	Python []byte
@@ -78,6 +77,9 @@ func (w *writer) printNode(node *ast.Node, indent int32) {
 
 	case *ast.Node_Dict:
 		w.printDict(n.Dict, indent)
+
+	case *ast.Node_Tuple:
+		w.printTuple(n.Tuple, indent)
 
 	case *ast.Node_Expr:
 		w.printNode(n.Expr.Value, indent)
@@ -318,7 +320,7 @@ func (w *writer) printDict(d *ast.Dict, indent int32) {
 	if split {
 		keyIndent += 1
 	}
-	for i, _ := range d.Keys {
+	for i := range d.Keys {
 		if split {
 			w.print("\n")
 			w.printIndent(keyIndent)
@@ -339,6 +341,17 @@ func (w *writer) printDict(d *ast.Dict, indent int32) {
 		w.printIndent(indent)
 	}
 	w.print("}")
+}
+
+func (w *writer) printTuple(d *ast.Tuple, indent int32) {
+	w.print("(")
+	for i := range d.Elems {
+		w.printNode(d.Elems[i], 0)
+		if i != len(d.Elems)-1 || len(d.Elems) == 1 {
+			w.print(", ")
+		}
+	}
+	w.print(")")
 }
 
 func (w *writer) printFor(n *ast.For, indent int32) {
@@ -442,6 +455,7 @@ func (w *writer) printImportGroup(n *ast.ImportGroup, indent int32) {
 func (w *writer) printIs(i *ast.Is, indent int32) {
 	w.print("is")
 }
+
 func (w *writer) printKeyword(k *ast.Keyword, indent int32) {
 	w.print(k.Arg)
 	w.print("=")
@@ -485,7 +499,6 @@ func (w *writer) printSubscript(ss *ast.Subscript, indent int32) {
 	w.print("[")
 	w.printNode(ss.Slice, indent)
 	w.print("]")
-
 }
 
 func (w *writer) printYield(n *ast.Yield, indent int32) {

@@ -151,8 +151,8 @@ func (q Query) AddArgs(args *pyast.Arguments) {
 	}
 }
 
-func (q Query) ArgDictNode() *pyast.Node {
-	dict := &pyast.Dict{}
+func (q Query) ArgTupleNode() *pyast.Node {
+	tuple := &pyast.Tuple{}
 	i := 1
 	for _, a := range q.Args {
 		if a.isEmpty() {
@@ -160,22 +160,20 @@ func (q Query) ArgDictNode() *pyast.Node {
 		}
 		if a.IsStruct() {
 			for _, f := range a.Struct.Fields {
-				dict.Keys = append(dict.Keys, poet.Constant(fmt.Sprintf("p%v", i)))
-				dict.Values = append(dict.Values, typeRefNode(a.Name, f.Name))
+				tuple.Elems = append(tuple.Elems, typeRefNode(a.Name, f.Name))
 				i++
 			}
 		} else {
-			dict.Keys = append(dict.Keys, poet.Constant(fmt.Sprintf("p%v", i)))
-			dict.Values = append(dict.Values, poet.Name(a.Name))
+			tuple.Elems = append(tuple.Elems, poet.Name(a.Name))
 			i++
 		}
 	}
-	if len(dict.Keys) == 0 {
+	if len(tuple.Elems) == 0 {
 		return nil
 	}
 	return &pyast.Node{
-		Node: &pyast.Node_Dict{
-			Dict: dict,
+		Node: &pyast.Node_Tuple{
+			Tuple: tuple,
 		},
 	}
 }
@@ -207,8 +205,10 @@ func modelName(name string, settings *plugin.Settings) string {
 	return out
 }
 
-var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+var (
+	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
+)
 
 func methodName(name string) string {
 	snake := matchFirstCap.ReplaceAllString(name, "${1}_${2}")
@@ -353,12 +353,10 @@ func columnsToStruct(req *plugin.GenerateRequest, name string, columns []pyColum
 
 var postgresPlaceholderRegexp = regexp.MustCompile(`\B\$(\d+)\b`)
 
-// Sqlalchemy uses ":name" for placeholders, so "$N" is converted to ":pN"
-// This also means ":" has special meaning to sqlalchemy, so it must be escaped.
-func sqlalchemySQL(s, engine string) string {
-	s = strings.ReplaceAll(s, ":", `\\:`)
+// psycopg uses %s for placeholders
+func psycopgSQL(s, engine string) string {
 	if engine == "postgresql" {
-		return postgresPlaceholderRegexp.ReplaceAllString(s, ":p$1")
+		return postgresPlaceholderRegexp.ReplaceAllString(s, "%s")
 	}
 	return s
 }
@@ -384,7 +382,7 @@ func buildQueries(conf Config, req *plugin.GenerateRequest, structs []Struct) ([
 			MethodName:   methodName,
 			FieldName:    sdk.LowerTitle(query.Name) + "Stmt",
 			ConstantName: strings.ToUpper(methodName),
-			SQL:          sqlalchemySQL(query.Text, req.Settings.Engine),
+			SQL:          psycopgSQL(query.Text, req.Settings.Engine),
 			SourceName:   query.Filename,
 		}
 
@@ -623,16 +621,7 @@ func typeRefNode(base string, parts ...string) *pyast.Node {
 
 func connMethodNode(method, name string, arg *pyast.Node) *pyast.Node {
 	args := []*pyast.Node{
-		{
-			Node: &pyast.Node_Call{
-				Call: &pyast.Call{
-					Func: typeRefNode("sqlalchemy", "text"),
-					Args: []*pyast.Node{
-						poet.Name(name),
-					},
-				},
-			},
-		},
+		poet.Name(name),
 	}
 	if arg != nil {
 		args = append(args, arg)
@@ -750,8 +739,16 @@ func querierClassDef() *pyast.ClassDef {
 									Arg: "self",
 								},
 								{
-									Arg:        "conn",
-									Annotation: typeRefNode("sqlalchemy", "engine", "Connection"),
+									Arg: "conn",
+									Annotation: &pyast.Node{
+										Node: &pyast.Node_Subscript{
+											Subscript: &pyast.Subscript{
+												// HACK!
+												Value: &pyast.Name{Id: "psycopg.AsyncConnection"},
+												Slice: poet.Name("Any"),
+											},
+										},
+									},
 								},
 							},
 						},
@@ -788,8 +785,16 @@ func asyncQuerierClassDef() *pyast.ClassDef {
 									Arg: "self",
 								},
 								{
-									Arg:        "conn",
-									Annotation: typeRefNode("sqlalchemy", "ext", "asyncio", "AsyncConnection"),
+									Arg: "conn",
+									Annotation: &pyast.Node{
+										Node: &pyast.Node_Subscript{
+											Subscript: &pyast.Subscript{
+												// HACK!
+												Value: &pyast.Name{Id: "psycopg.AsyncConnection"},
+												Slice: poet.Name("Any"),
+											},
+										},
+									},
 								},
 							},
 						},
@@ -887,14 +892,14 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 			}
 
 			q.AddArgs(f.Args)
-			exec := connMethodNode("execute", q.ConstantName, q.ArgDictNode())
+			exec := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
 
 			switch q.Cmd {
 			case ":one":
 				f.Body = append(f.Body,
 					assignNode("row", poet.Node(
 						&pyast.Call{
-							Func: poet.Attribute(exec, "first"),
+							Func: poet.Attribute(exec, "fetchone"),
 						},
 					)),
 					poet.Node(
@@ -951,7 +956,15 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					poet.Return(exec),
 				)
-				f.Returns = typeRefNode("sqlalchemy", "engine", "Result")
+				f.Returns = &pyast.Node{
+					Node: &pyast.Node_Subscript{
+						Subscript: &pyast.Subscript{
+							// HACK!
+							Value: &pyast.Name{Id: "psycopg.AsyncCursor"},
+							Slice: poet.Name("Any"),
+						},
+					},
+				}
 			default:
 				panic("unknown cmd " + q.Cmd)
 			}
@@ -979,14 +992,14 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 			}
 
 			q.AddArgs(f.Args)
-			exec := connMethodNode("execute", q.ConstantName, q.ArgDictNode())
+			exec := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
 
 			switch q.Cmd {
 			case ":one":
 				f.Body = append(f.Body,
 					assignNode("row", poet.Node(
 						&pyast.Call{
-							Func: poet.Attribute(poet.Await(exec), "first"),
+							Func: poet.Await(poet.Attribute(poet.Await(exec), "fetchone")),
 						},
 					)),
 					poet.Node(
@@ -1013,13 +1026,13 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				)
 				f.Returns = subscriptNode("Optional", q.Ret.Annotation())
 			case ":many":
-				stream := connMethodNode("stream", q.ConstantName, q.ArgDictNode())
+				cursor := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
 				f.Body = append(f.Body,
-					assignNode("result", poet.Await(stream)),
+					assignNode("cursor", poet.Await(cursor)),
 					poet.Node(
 						&pyast.AsyncFor{
 							Target: poet.Name("row"),
-							Iter:   poet.Name("result"),
+							Iter:   poet.Name("cursor"),
 							Body: []*pyast.Node{
 								poet.Expr(
 									poet.Yield(
@@ -1044,7 +1057,15 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					poet.Return(poet.Await(exec)),
 				)
-				f.Returns = typeRefNode("sqlalchemy", "engine", "Result")
+				f.Returns = &pyast.Node{
+					Node: &pyast.Node_Subscript{
+						Subscript: &pyast.Subscript{
+							// HACK!
+							Value: &pyast.Name{Id: "psycopg.AsyncCursor"},
+							Slice: poet.Name("Any"),
+						},
+					},
+				}
 			default:
 				panic("unknown cmd " + q.Cmd)
 			}
