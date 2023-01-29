@@ -902,7 +902,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					assignNode("row", poet.Node(
 						&pyast.Call{
-							Func: poet.Attribute(exec, "first"),
+							Func: poet.Attribute(exec, "fetchone"),
 						},
 					)),
 					poet.Node(
@@ -994,7 +994,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					assignNode("row", poet.Node(
 						&pyast.Call{
-							Func: poet.Attribute(poet.Await(exec), "first"),
+							Func: poet.Attribute(poet.Await(exec), "fetchone"),
 						},
 					)),
 					poet.Node(
