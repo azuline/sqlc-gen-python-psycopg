@@ -224,8 +224,10 @@ func modelName(name string, settings *plugin.Settings) string {
 	return out
 }
 
-var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+var (
+	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
+)
 
 func methodName(name string) string {
 	snake := matchFirstCap.ReplaceAllString(name, "${1}_${2}")
@@ -370,12 +372,10 @@ func columnsToStruct(req *plugin.CodeGenRequest, name string, columns []pyColumn
 
 var postgresPlaceholderRegexp = regexp.MustCompile(`\B\$(\d+)\b`)
 
-// Sqlalchemy uses ":name" for placeholders, so "$N" is converted to ":pN"
-// This also means ":" has special meaning to sqlalchemy, so it must be escaped.
-func sqlalchemySQL(s, engine string) string {
-	s = strings.ReplaceAll(s, ":", `\\:`)
+// psycopg uses %s for placeholders
+func psycopgSQL(s, engine string) string {
 	if engine == "postgresql" {
-		return postgresPlaceholderRegexp.ReplaceAllString(s, ":p$1")
+		return postgresPlaceholderRegexp.ReplaceAllString(s, "%s")
 	}
 	return s
 }
@@ -401,7 +401,7 @@ func buildQueries(conf Config, req *plugin.CodeGenRequest, structs []Struct) ([]
 			MethodName:   methodName,
 			FieldName:    sdk.LowerTitle(query.Name) + "Stmt",
 			ConstantName: strings.ToUpper(methodName),
-			SQL:          sqlalchemySQL(query.Text, req.Settings.Engine),
+			SQL:          psycopgSQL(query.Text, req.Settings.Engine),
 			SourceName:   query.Filename,
 		}
 
@@ -640,16 +640,7 @@ func typeRefNode(base string, parts ...string) *pyast.Node {
 
 func connMethodNode(method, name string, arg *pyast.Node) *pyast.Node {
 	args := []*pyast.Node{
-		{
-			Node: &pyast.Node_Call{
-				Call: &pyast.Call{
-					Func: typeRefNode("sqlalchemy", "text"),
-					Args: []*pyast.Node{
-						poet.Name(name),
-					},
-				},
-			},
-		},
+		poet.Name(name),
 	}
 	if arg != nil {
 		args = append(args, arg)
@@ -768,7 +759,7 @@ func querierClassDef() *pyast.ClassDef {
 								},
 								{
 									Arg:        "conn",
-									Annotation: typeRefNode("sqlalchemy", "engine", "Connection"),
+									Annotation: typeRefNode("psycopg", "AsyncConnection"),
 								},
 							},
 						},
@@ -806,7 +797,7 @@ func asyncQuerierClassDef() *pyast.ClassDef {
 								},
 								{
 									Arg:        "conn",
-									Annotation: typeRefNode("sqlalchemy", "ext", "asyncio", "AsyncConnection"),
+									Annotation: typeRefNode("psycopg", "AsyncConnection"),
 								},
 							},
 						},
@@ -968,7 +959,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					poet.Return(exec),
 				)
-				f.Returns = typeRefNode("sqlalchemy", "engine", "Result")
+				f.Returns = typeRefNode("psycopg", "AsyncCursor")
 			default:
 				panic("unknown cmd " + q.Cmd)
 			}
@@ -1061,7 +1052,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					poet.Return(poet.Await(exec)),
 				)
-				f.Returns = typeRefNode("sqlalchemy", "engine", "Result")
+				f.Returns = typeRefNode("psycopg", "AsyncCursor")
 			default:
 				panic("unknown cmd " + q.Cmd)
 			}

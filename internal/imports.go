@@ -152,9 +152,9 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 	std := stdImports(queryUses)
 
 	pkg := make(map[string]importSpec)
-	pkg["sqlalchemy"] = importSpec{Module: "sqlalchemy"}
+	pkg["psycopg"] = importSpec{Module: "psycopg"}
 	if i.C.EmitAsyncQuerier {
-		pkg["sqlalchemy.ext.asyncio"] = importSpec{Module: "sqlalchemy.ext.asyncio"}
+		pkg["psycopg"] = importSpec{Module: "psycopg"}
 	}
 
 	for _, o := range i.Settings.Overrides {
