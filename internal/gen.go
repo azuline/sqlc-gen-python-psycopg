@@ -160,7 +160,7 @@ func (q Query) ArgDictNode() *pyast.Node {
 		}
 		if a.IsStruct() {
 			for _, f := range a.Struct.Fields {
-				dict.Keys = append(dict.Keys, poet.Constant(fmt.Sprintf("p%v", i)))
+				dict.Keys = append(dict.Keys, poet.Constant(f.Name))
 				dict.Values = append(dict.Values, typeRefNode(a.Name, f.Name))
 				i++
 			}
