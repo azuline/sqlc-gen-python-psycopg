@@ -160,11 +160,11 @@ func (q Query) ArgTupleNode() *pyast.Node {
 		}
 		if a.IsStruct() {
 			for _, f := range a.Struct.Fields {
-				tuple.Elems = append(tuple.Elems, poet.Constant(f.Name))
+				tuple.Elems = append(tuple.Elems, typeRefNode(a.Name, f.Name))
 				i++
 			}
 		} else {
-			tuple.Elems = append(tuple.Elems, poet.Constant(a.Name))
+			tuple.Elems = append(tuple.Elems, poet.Name(a.Name))
 			i++
 		}
 	}
