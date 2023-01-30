@@ -347,7 +347,7 @@ func (w *writer) printTuple(d *ast.Tuple, indent int32) {
 	w.print("(")
 	for i := range d.Elems {
 		w.printNode(d.Elems[i], 0)
-		if i != len(d.Elems)-1 {
+		if i != len(d.Elems)-1 || len(d.Elems) == 1 {
 			w.print(", ")
 		}
 	}
