@@ -992,7 +992,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					assignNode("row", poet.Node(
 						&pyast.Call{
-							Func: poet.Attribute(poet.Await(exec), "fetchone"),
+							Func: poet.Await(poet.Attribute(poet.Await(exec), "fetchone")),
 						},
 					)),
 					poet.Node(
@@ -1019,13 +1019,13 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				)
 				f.Returns = subscriptNode("Optional", q.Ret.Annotation())
 			case ":many":
-				stream := connMethodNode("stream", q.ConstantName, q.ArgTupleNode())
+				cursor := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
 				f.Body = append(f.Body,
-					assignNode("result", poet.Await(stream)),
+					assignNode("cursor", poet.Await(cursor)),
 					poet.Node(
 						&pyast.AsyncFor{
 							Target: poet.Name("row"),
-							Iter:   poet.Name("result"),
+							Iter:   poet.Name("cursor"),
 							Body: []*pyast.Node{
 								poet.Expr(
 									poet.Yield(
