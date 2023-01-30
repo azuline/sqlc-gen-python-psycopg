@@ -151,8 +151,8 @@ func (q Query) AddArgs(args *pyast.Arguments) {
 	}
 }
 
-func (q Query) ArgDictNode() *pyast.Node {
-	dict := &pyast.Dict{}
+func (q Query) ArgTupleNode() *pyast.Node {
+	tuple := &pyast.Tuple{}
 	i := 1
 	for _, a := range q.Args {
 		if a.isEmpty() {
@@ -160,22 +160,20 @@ func (q Query) ArgDictNode() *pyast.Node {
 		}
 		if a.IsStruct() {
 			for _, f := range a.Struct.Fields {
-				dict.Keys = append(dict.Keys, poet.Constant(f.Name))
-				dict.Values = append(dict.Values, typeRefNode(a.Name, f.Name))
+				tuple.Elems = append(tuple.Elems, poet.Constant(f.Name))
 				i++
 			}
 		} else {
-			dict.Keys = append(dict.Keys, poet.Constant(fmt.Sprintf("p%v", i)))
-			dict.Values = append(dict.Values, poet.Name(a.Name))
+			tuple.Elems = append(tuple.Elems, poet.Constant(a.Name))
 			i++
 		}
 	}
-	if len(dict.Keys) == 0 {
+	if len(tuple.Elems) == 0 {
 		return nil
 	}
 	return &pyast.Node{
-		Node: &pyast.Node_Dict{
-			Dict: dict,
+		Node: &pyast.Node_Tuple{
+			Tuple: tuple,
 		},
 	}
 }
@@ -895,7 +893,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 			}
 
 			q.AddArgs(f.Args)
-			exec := connMethodNode("execute", q.ConstantName, q.ArgDictNode())
+			exec := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
 
 			switch q.Cmd {
 			case ":one":
@@ -987,7 +985,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 			}
 
 			q.AddArgs(f.Args)
-			exec := connMethodNode("execute", q.ConstantName, q.ArgDictNode())
+			exec := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
 
 			switch q.Cmd {
 			case ":one":
@@ -1021,7 +1019,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				)
 				f.Returns = subscriptNode("Optional", q.Ret.Annotation())
 			case ":many":
-				stream := connMethodNode("stream", q.ConstantName, q.ArgDictNode())
+				stream := connMethodNode("stream", q.ConstantName, q.ArgTupleNode())
 				f.Body = append(f.Body,
 					assignNode("result", poet.Await(stream)),
 					poet.Node(
