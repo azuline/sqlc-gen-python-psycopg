@@ -181,10 +181,12 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 		}
 		if q.Cmd == ":one" {
 			std["typing.Optional"] = importSpec{Module: "typing", Name: "Optional"}
+			std["typing.Any"] = importSpec{Module: "typing", Name: "Any"}
 		}
 		if q.Cmd == ":many" {
 			if i.C.EmitSyncQuerier {
 				std["typing.Iterator"] = importSpec{Module: "typing", Name: "Iterator"}
+				std["typing.Any"] = importSpec{Module: "typing", Name: "Any"}
 			}
 			if i.C.EmitAsyncQuerier {
 				std["typing.AsyncIterator"] = importSpec{Module: "typing", Name: "AsyncIterator"}

@@ -756,8 +756,16 @@ func querierClassDef() *pyast.ClassDef {
 									Arg: "self",
 								},
 								{
-									Arg:        "conn",
-									Annotation: typeRefNode("psycopg", "AsyncConnection"),
+									Arg: "conn",
+									Annotation: &pyast.Node{
+										Node: &pyast.Node_Subscript{
+											Subscript: &pyast.Subscript{
+												// HACK!
+												Value: &pyast.Name{Id: "psycopg.AsyncConnection"},
+												Slice: poet.Name("Any"),
+											},
+										},
+									},
 								},
 							},
 						},
@@ -794,8 +802,16 @@ func asyncQuerierClassDef() *pyast.ClassDef {
 									Arg: "self",
 								},
 								{
-									Arg:        "conn",
-									Annotation: typeRefNode("psycopg", "AsyncConnection"),
+									Arg: "conn",
+									Annotation: &pyast.Node{
+										Node: &pyast.Node_Subscript{
+											Subscript: &pyast.Subscript{
+												// HACK!
+												Value: &pyast.Name{Id: "psycopg.AsyncConnection"},
+												Slice: poet.Name("Any"),
+											},
+										},
+									},
 								},
 							},
 						},
@@ -957,7 +973,15 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					poet.Return(exec),
 				)
-				f.Returns = typeRefNode("psycopg", "AsyncCursor")
+				f.Returns = &pyast.Node{
+					Node: &pyast.Node_Subscript{
+						Subscript: &pyast.Subscript{
+							// HACK!
+							Value: &pyast.Name{Id: "psycopg.AsyncCursor"},
+							Slice: poet.Name("Any"),
+						},
+					},
+				}
 			default:
 				panic("unknown cmd " + q.Cmd)
 			}
@@ -1050,7 +1074,15 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				f.Body = append(f.Body,
 					poet.Return(poet.Await(exec)),
 				)
-				f.Returns = typeRefNode("psycopg", "AsyncCursor")
+				f.Returns = &pyast.Node{
+					Node: &pyast.Node_Subscript{
+						Subscript: &pyast.Subscript{
+							// HACK!
+							Value: &pyast.Name{Id: "psycopg.AsyncCursor"},
+							Slice: poet.Name("Any"),
+						},
+					},
+				}
 			default:
 				panic("unknown cmd " + q.Cmd)
 			}
