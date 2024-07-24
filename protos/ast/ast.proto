@@ -36,6 +36,7 @@ message Node {
     Await await = 28 [json_name="Await"];
     AsyncFor async_for = 29 [json_name="AsyncFor"];
     ImportGroup import_group = 30 [json_name="ImportGroup"];
+    Tuple tuple = 31 [json_name="Tuple"];
   }
 }
 
@@ -239,4 +240,7 @@ message Yield
   Node value = 1 [json_name="value"];
 }
 
-
+message Tuple
+{
+  repeated Node elems = 1 [json_name="elems"];
+}
