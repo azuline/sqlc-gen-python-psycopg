@@ -355,10 +355,10 @@ func columnsToStruct(req *plugin.GenerateRequest, name string, columns []pyColum
 
 var postgresPlaceholderRegexp = regexp.MustCompile(`\B\$(\d+)\b`)
 
-// psycopg uses %(name) for placeholders, so $N is converted to %(N)
+// psycopg uses %(name)s for placeholders, so $N is converted to %(N)
 func psycopgSQL(s, engine string) string {
 	if engine == "postgresql" {
-		return postgresPlaceholderRegexp.ReplaceAllString(s, "%(p$1)")
+		return postgresPlaceholderRegexp.ReplaceAllString(s, "%(p$1)s")
 	}
 	return s
 }
