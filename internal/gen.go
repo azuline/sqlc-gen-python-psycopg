@@ -151,8 +151,8 @@ func (q Query) AddArgs(args *pyast.Arguments) {
 	}
 }
 
-func (q Query) ArgTupleNode() *pyast.Node {
-	tuple := &pyast.Tuple{}
+func (q Query) ArgDictNode() *pyast.Node {
+	dict := &pyast.Dict{}
 	i := 1
 	for _, a := range q.Args {
 		if a.isEmpty() {
@@ -160,20 +160,22 @@ func (q Query) ArgTupleNode() *pyast.Node {
 		}
 		if a.IsStruct() {
 			for _, f := range a.Struct.Fields {
-				tuple.Elems = append(tuple.Elems, typeRefNode(a.Name, f.Name))
+				dict.Keys = append(dict.Keys, poet.Constant(fmt.Sprintf("p%v", i)))
+				dict.Values = append(dict.Values, typeRefNode(a.Name, f.Name))
 				i++
 			}
 		} else {
-			tuple.Elems = append(tuple.Elems, poet.Name(a.Name))
+			dict.Keys = append(dict.Keys, poet.Constant(fmt.Sprintf("p%v", i)))
+			dict.Values = append(dict.Values, poet.Name(a.Name))
 			i++
 		}
 	}
-	if len(tuple.Elems) == 0 {
+	if len(dict.Keys) == 0 {
 		return nil
 	}
 	return &pyast.Node{
-		Node: &pyast.Node_Tuple{
-			Tuple: tuple,
+		Node: &pyast.Node_Dict{
+			Dict: dict,
 		},
 	}
 }
@@ -353,10 +355,10 @@ func columnsToStruct(req *plugin.GenerateRequest, name string, columns []pyColum
 
 var postgresPlaceholderRegexp = regexp.MustCompile(`\B\$(\d+)\b`)
 
-// psycopg uses %s for placeholders
+// psycopg uses %(name) for placeholders, so $N is converted to %(N)
 func psycopgSQL(s, engine string) string {
 	if engine == "postgresql" {
-		return postgresPlaceholderRegexp.ReplaceAllString(s, "%s")
+		return postgresPlaceholderRegexp.ReplaceAllString(s, "%(p$1)")
 	}
 	return s
 }
@@ -892,7 +894,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 			}
 
 			q.AddArgs(f.Args)
-			exec := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
+			exec := connMethodNode("execute", q.ConstantName, q.ArgDictNode())
 
 			switch q.Cmd {
 			case ":one":
@@ -992,7 +994,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 			}
 
 			q.AddArgs(f.Args)
-			exec := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
+			exec := connMethodNode("execute", q.ConstantName, q.ArgDictNode())
 
 			switch q.Cmd {
 			case ":one":
@@ -1026,7 +1028,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 				)
 				f.Returns = subscriptNode("Optional", q.Ret.Annotation())
 			case ":many":
-				cursor := connMethodNode("execute", q.ConstantName, q.ArgTupleNode())
+				cursor := connMethodNode("execute", q.ConstantName, q.ArgDictNode())
 				f.Body = append(f.Body,
 					assignNode("cursor", poet.Await(cursor)),
 					poet.Node(
